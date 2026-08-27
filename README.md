@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/leonardo-dev-toolkit.png" alt="Leonardo Dev Toolkit — Pictura, Proportio, Machina" width="720" />
+</p>
+
 # Leonardo Dev Toolkit
 
 > *«O código é o produto residual da teoria da construção do projeto.»*  
