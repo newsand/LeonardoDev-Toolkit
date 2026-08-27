@@ -1,0 +1,5 @@
+{
+  "min_coverage_percent": 0,
+  "lint_fail_on": "error",
+  "gitleaks_fail": true
+}

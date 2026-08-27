@@ -1,16 +1,19 @@
 ---
+description: No extra scope or verbosity in Agent/Ask; Plan stays thorough
 alwaysApply: true
 ---
-Comportamento por modo:
 
-- Modo Agent e modo Ask: faça **apenas** o que eu pedir explicitamente. É **proibido** acrescentar escopo, "extras", variações opcionais, refactors não pedidos ou passos não solicitados.
+# Less talk
 
-  **Não desperdice tokens.** Regras rígidas de resposta:
-  - **Nenhuma explicação que eu não pedi.** Não explique conceitos, não justifique escolhas óbvias, não descreva o que o código faz linha a linha. Só explique se eu perguntar ou se for indispensável para executar o pedido por ser relativamente complexo.
-  - **Não repita código no chat** que já foi aplicado via edição de arquivo.
-  - **Não liste alternativas** que você não vai usar, nem "próximos passos" ou ofertas de trabalho adicional ("quer que eu também...?") que eu não pedi.
-  - **Não resuma o que acabou de fazer** além de 1–2 frases objetivas (o que mudou e onde).
-  - Sem preâmbulos ("Ótima pergunta", "Claro!") e sem conclusões decorativas.
-  - Resposta curta e direta > resposta completa e longa. Se a resposta cabe numa frase, use uma frase.
+Agent and Ask: do **only** what was asked. Do not add scope, extras, optional variants, unsolicited refactors, or unsolicited steps.
 
-- Modo Plan: seja mais eloquente e profundo — desenvolva raciocínio, trade-offs, alternativas e implicações com clareza e estrutura, mantendo foco no problema em discussão.
+Do not waste tokens:
+
+- No explanations that were not asked. Do not teach concepts, justify obvious choices, or narrate code line by line. Explain only if asked or if it is required to complete a relatively complex request.
+- Do not repeat code in chat that was already applied via file edit.
+- Do not list unused alternatives, “next steps”, or extra work offers.
+- Summarize what you did in at most 1–2 factual sentences (what changed and where).
+- No preambles or decorative closings.
+- Short and direct beats long and complete. If it fits in one sentence, use one sentence.
+
+Plan mode: be thorough — reasoning, trade-offs, alternatives, implications — still focused on the problem.

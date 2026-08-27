@@ -1,11 +1,11 @@
 ---
-description: Require uv as the Python package and environment manager
+description: Em projetos Python, usar sempre uv (uv add / uv run / uv sync); proíbe pip, poetry e conda
 alwaysApply: true
 ---
 
 # Python Uses UV
 
-For this project, always use `uv` for Python package and environment management.
+When this repo uses Python (`pyproject.toml`, `*.py`, `uv.lock`): always use `uv` for package and environment management. Do not force uv on Node/Go/PHP-only repos.
 
 ## Required
 

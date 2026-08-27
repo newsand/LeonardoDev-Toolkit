@@ -1,0 +1,29 @@
+---
+description: If /docs exists it is the binding spec; implement in TDD phases; keep code and docs in sync
+alwaysApply: true
+---
+
+# Docs pointer
+
+If `/docs` exists, it is the source of truth for the spec (brief, architecture, models, features, contracts, non-negotiables, discretion, CHANGELOG).
+
+## Spec vs implementation
+
+| | What | Where |
+|--|------|--------|
+| What to build | One-shot spec | `/docs` |
+| How to build | TDD phases | `docs/tdd/fase{N}.md` + `fase{N}Task.md` |
+
+Red (`tester`) → required handoff → Green (`coder`) → Refactor → Verify. No implementation without the Red handoff. BUILD uses `documentation-harness` and `tester`.
+
+Use `documentation-harness` when: (a) planning/documenting (DOC), (b) building from `/docs` in TDD phases (BUILD), (c) code and `/docs` diverged (SYNC).
+
+## Sync
+
+- A code change that alters something in `/docs` updates that doc **in the same step**.
+- A `/docs` edit that requires behavior change needs a code plan and confirmation before applying.
+- Unjustified contradiction → stop and ask which side wins.
+
+## Legacy `docs/harness/`
+
+If `docs/harness/` already exists, both bind (`all-for-harness`). Do not rewrite one to match the other without an explicit request. **New bootstraps use `/docs` only** — do not create `docs/harness/` next to it.

@@ -1,133 +1,22 @@
 ---
 name: harness-create
 description: >-
-  Interactively creates the project harness docs (architecture rules, coding
-  conventions, forbidden patterns, testing expectations, deployment rules,
-  domain invariants, operational constraints, per-feature feature-{name}.md
-  files) from the Michelangelo-Dev-Toolkit
-  templates, asking the user only for what the prompt context does not
-  provide, and installs the all-for-harness rule alongside them. Use when
-  starting a new project, bootstrapping docs/harness/, or when the user asks
-  to create or fill harness docs.
+  Bootstraps the one-shot spec in /docs (DOC mode of documentation-harness):
+  brief, architecture, models, features with the user's 4 answers, contracts,
+  non-negotiables, discretion, CHANGELOG, and installs docs-pointer plus
+  default-architecture. Use when starting a project or creating /docs.
+  Brownfield with existing code prefers legacy-explainer first when present.
 disable-model-invocation: true
 ---
 
-# Harness Create
+# Harness create
 
-Builds the `docs/harness/` documents for a project **step by step**, one doc at a time, and finishes by installing the `all-for-harness` rule so the project is bound to them.
+This skill **is** DOC mode of [`documentation-harness`](../documentation-harness/SKILL.md). Do not write `docs/harness/` for new bootstraps — the spec is `/docs`.
 
-For **brownfield** projects with existing code, prefer [`legacy-explainer`](../legacy-explainer/SKILL.md) (evidence from Graphify). This skill is for **greenfield** or docs-first setups.
+When invoked:
 
-## Source templates
+1. Read and follow **DOC mode** in `documentation-harness/SKILL.md`.
+2. Use `documentation-harness/templates.md` (do not invent sections). Follow `default-architecture` and `quality-gate`.
+3. BUILD and SYNC stay on `documentation-harness`.
 
-| Template (this kit) | Target document |
-|---------------------|-----------------|
-| `docs/harness/architeture_rules_template.md` | `docs/harness/architecture_rules.md` |
-| `docs/harness/coding_conventions_template.md` | `docs/harness/coding_convention.md` |
-| `docs/harness/forbidden_patterns_template.md` | `docs/harness/forbidden_patterns.md` |
-| `docs/harness/testing_expectations_template.md` | `docs/harness/testing_expectation.md` |
-| `docs/harness/deployment_rules_template.md` | `docs/harness/deployment_rules.md` |
-| `docs/harness/domain_invariants_template.md` | `docs/harness/domain_invariantes.md` |
-| `docs/harness/operational_constraints_template.md` | `docs/harness/operational_constraints.md` |
-| `docs/harness/features_template.md` | `docs/harness/features/feature-{name}.md` (one file per feature, never monolithic) |
-
-If the templates are not in the current repo, fetch them from `Michelangelo-Dev-Toolkit` (see `get-my-tools`) or ask the user where they live.
-
-## Workflow
-
-Copy and track progress:
-
-```
-- [ ] Step 1: Extract known context from the prompt/conversation
-- [ ] Step 2: Ask ONLY for missing information (AskQuestion)
-- [ ] Step 3: Generate each harness doc, one at a time, confirming with the user
-- [ ] Step 3b: Map features — ask the 4 questions per feature, one feature-{name}.md each
-- [ ] Step 3c: Validate feature files (4 user answers, dependencies, acceptance criteria)
-- [ ] Step 4: Install .cursor/rules/all-for-harness.mdc in the project
-- [ ] Step 5: Summary — docs written, features mapped/pending, open placeholders left for the user
-```
-
-### Step 1 — Extract known context
-
-Before asking anything, mine the prompt, conversation, and repo (README, manifests, existing code) for:
-
-- Language, framework, runtime, package manager
-- Architectural style (default is simple MVC per the templates)
-- Business domain and core entities
-- Test runner and testing culture
-- Deploy target (VPS, k8s, serverless, shared hosting…)
-- Compliance/data sensitivity (PII, payments, health)
-
-**Never ask for something the context already answers.**
-
-### Step 2 — Ask only the gaps
-
-Use the AskQuestion tool with the unanswered items. Question bank (pick only what is missing):
-
-| Doc | Questions to fill gaps |
-|-----|------------------------|
-| architecture_rules | Architectural style? (MVC default / other) Modules or bounded areas? Any DDD/Clean exception explicitly enabled? |
-| coding_convention | Language + framework conventions? Naming preferences? Lint/format tooling? |
-| forbidden_patterns | Anything forbidden beyond the defaults (DDD/Clean/CQRS global, vague Manager/Helper, etc.)? |
-| testing_expectation | Test runner? Coverage focus (behavior vs implementation)? E2E in scope? |
-| deployment_rules | Deploy target and pipeline? Feature flags available? Migration policy? |
-| domain_invariantes | Core business rules that must never break? (ask for 2–3 concrete examples) |
-| operational_constraints | Latency/SLA targets? External services + rate limits? Data retention/PII rules? |
-| features | Per feature, the 4 mandatory questions: 1) Como descreve a feature? 2) Qual problema objetivamente ela resolve? 3) Qual a solução esperada? Quais trade-offs envolve? 4) Qual exemplo ou contexto temos do problema e da solução? |
-
-Batch questions into a single AskQuestion call when possible. If the user answers "don't know yet", keep the template placeholder and mark it as an open item for the summary.
-
-**Exception for features**: the 4 answers must come from the user — they cannot be invented or complemented by the agent, and "don't know yet" does not produce a placeholder-filled file. The feature stays **pending** (listed in the summary) until the user answers.
-
-### Step 3 — Generate docs one at a time
-
-For each document, in the table order:
-
-1. Copy the template structure (do **not** invent new sections).
-2. Fill it with context + answers; keep it concrete and short — these docs are read by agents on every relevant change, so avoid filler prose.
-3. Replace only what is known; leave unanswered fields as explicit placeholders (`TBD:` + what is needed).
-4. Show the doc (or a diff) and confirm before moving to the next one. If the user says "generate all without confirming", proceed straight through.
-
-### Step 3b — Map features (critical harness)
-
-After the seven docs, map the project's features into `docs/harness/features/` following `docs/harness/features_template.md`:
-
-1. List candidate features from the context (and let the user add more).
-2. For **each** feature, ask the 4 mandatory questions and record the user's answers verbatim.
-3. Write one `docs/harness/features/feature-{name}.md` per feature — never a monolithic file — including: Depende de, Descrição, Fluxo (given/when/then), Casos de erro, Critério de aceite, Exemplo/contexto, and agent-suggested Design Patterns (GoF) derived from the 4 answers.
-4. In **greenfield** projects, repeat the loop until the maximum of features is mapped **before** the design docs phase starts. In **brownfield**, map the new feature and how it relates to the existing project.
-
-### Step 3c — Validate feature files
-
-Before the summary, check every `feature-{name}.md`:
-
-- All 4 answers are present and came from the user (none agent-invented).
-- Every entry in "Depende de" points to an existing `feature-{name}.md`.
-- "Critério de aceite" exists with testable checklist items.
-
-Files failing validation go to the pending list — do not silently fill the gaps.
-
-### Step 4 — Install the all-for-harness rule
-
-Write `.cursor/rules/all-for-harness.mdc` into the target project (copy from this kit's `.cursor/rules/all-for-harness.mdc`). This rule makes the docs **binding**: agents must read and follow them before architectural, testing, deployment, or domain changes.
-
-The rule and the docs are a unit — never leave the docs without the rule.
-
-### Step 5 — Summary
-
-Report:
-
-- Docs written (paths)
-- Features mapped (`docs/harness/features/feature-{name}.md`) and features **pending** user answers
-- Placeholders / open questions left (`TBD:` items per doc)
-- Rule installed at `.cursor/rules/all-for-harness.mdc`
-
-## Guardrails
-
-- Do not fabricate business rules, SLAs, or compliance requirements — ask or leave `TBD:`.
-- Never write a `feature-{name}.md` with invented answers to the 4 questions — only the user answers them.
-- Never consolidate features into a single monolithic file; always one file per feature inside `docs/harness/features/`.
-- Do not enable DDD/Clean/Hexagonal in `architecture_rules.md` unless the user explicitly requested it.
-- Always preserve the unidirectional data flow rule in generated `architecture_rules.md` and `forbidden_patterns.md`: data cycles/loops are only allowed when the alternatives are more complex, more abstract, or require significantly more code, or when the user explicitly requests the loop. Never drop or weaken this rule.
-- Do not overwrite an existing filled harness doc without confirmation; offer a diff first.
-- Keep each generated doc at or below the template's size — the value is in precision, not volume.
+If `/docs` already exists and is filled, do not overwrite without a diff and explicit confirmation. Offer SYNC or a new feature file instead.

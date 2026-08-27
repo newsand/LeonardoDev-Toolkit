@@ -18,12 +18,16 @@ Invoke **before** writing production code for a new feature (legacy codebase or 
 
 ## Harness docs first
 
-Before planning or writing tests, read project testing expectations:
+Spec (`/docs`) is the source of what to test. Implementation is TDD phases (`docs/tdd/fase{N}*`).
 
-1. Prefer [`docs/harness/testing_expectation.md`](../../../docs/harness/testing_expectation.md) if present.
-2. If missing, read [`docs/harness/testing_expectations_template.md`](../../../docs/harness/testing_expectations_template.md) (note the naming gap versus the `_template` convention) and do not invent stricter rules than that file implies.
+Before planning or writing tests, read:
 
-Follow always-apply project rules (including harness documentation gates under `.cursor/rules/`) alongside those docs.
+1. `/docs/03-features/feature-{name}.md` (acceptance, operations, error cases) and `/docs/04-contracts.md`
+2. `/docs/05-non-negotiables.md` (test strategy). Legacy only: `docs/harness/testing_expectation.md`
+
+Do not invent acceptance criteria that contradict `/docs`.
+
+Follow always-apply project rules (`.cursor/rules/`) alongside those docs.
 
 ## TDD workflow
 
@@ -33,46 +37,46 @@ Copy and track progress:
 - [ ] Write **exactly one** new failing unit or integration test (Red).
 - [ ] Repeat Red until the triangulation matrix for the phase slice is covered.
 - [ ] Run the new test(s); confirm **Red** (failing as expected); report command and outcome.
-- [ ] Create Green handoff docs for this phase (see below) — **mandatory before any production code**.
-- [ ] Implement the **minimal** production code needed to turn tests green (Green) — own session or follow-up; use `fase{N}Task.md` as checklist.
-- [ ] Refactor if needed without changing observable behavior (Refactor).
+- [ ] Create Green handoff docs for this **phase** (see below) — **mandatory before any production code**.
+- [ ] **Green** is the `coder` agent: minimal production from `fase{N}Task.md`. Do not write production code in Red.
+- [ ] **Refactor** is the `refactor` agent if needed (behavior-preserving).
 - [ ] Append a row to [`docs/testsReadme.md`](../../../docs/testsReadme.md) (suite/name, purpose, path, isolated run command).
 
 ## Green handoff docs (mandatory after Red)
 
-When Red for an **implementation phase** is done, always create **both** files under `docs/tdd/` before writing production code:
+When Red for an **implementation phase** is done, always create **both** files under `docs/tdd/` before writing production code. Each phase is numbered `N`. The handoff must cite `/docs` (feature + operation), not invent scope.
+
+**`N`**: phase number. If none is given, use the next free integer in `docs/tdd/` (`fase1*` already exists → use `2`).
 
 | File | Purpose |
 |------|---------|
-| `docs/tdd/fase{N}.md` | Passo a passo detalhado: código mínimo para Green |
-| `docs/tdd/fase{N}Task.md` | Mesmo plano em checkboxes — controle de execução |
+| `docs/tdd/fase{N}.md` | Step-by-step: minimal code for Green |
+| `docs/tdd/fase{N}Task.md` | Same plan as checkboxes — execution control |
 
-**`N`**: número da fase de implementação em que a skill foi invocada (TDD/design doc). Se não houver fase explícita, use o próximo inteiro livre em `docs/tdd/` (ex.: já existem `fase1*` → use `2`).
+### `fase{N}.md` — minimum
 
-### `fase{N}.md` — conteúdo mínimo
+1. **Context** — phase `N`, feature/operation in `/docs`, Red tests written (paths).
+2. **Red command** — how to run only these tests and confirm the expected failure.
+3. **Green steps** — numbered: files to create/change, symbols, minimal logic per step; what **not** to implement yet.
+4. **Verify** — command to confirm Green; done criteria.
 
-1. **Contexto** — fase, slice, testes Red escritos (paths).
-2. **Comando Red** — como correr só estes testes e confirmar falha esperada.
-3. **Passos Green** — ordem numerada: ficheiros a criar/alterar, símbolos, lógica mínima por passo; o que **não** implementar ainda.
-4. **Verificação** — comando para confirmar Green; critério de done.
+### `fase{N}Task.md` — minimum
 
-### `fase{N}Task.md` — conteúdo mínimo
-
-Checkboxes espelhando os passos de `fase{N}.md`, uma linha acionável cada:
+Checkboxes mirroring `fase{N}.md`, one actionable line each:
 
 ```markdown
-# Fase {N} — Green
+# Phase {N} — Green
 
 - [ ] …
 - [ ] …
-- [ ] Testes da fase passam: `<comando>`
+- [ ] Phase tests pass: `<command>`
 ```
 
-Regras:
+Rules:
 
-- **Nunca** implementar produção na mesma resposta em que termina Red **sem** ter criado os dois ficheiros (salvo se o utilizador pedir Green explicitamente na mesma mensagem — mesmo assim, criar os docs **antes** do código).
-- Ao implementar Green (mesma sessão ou outra), marcar checkboxes em `fase{N}Task.md` conforme avança.
-- Se Red for só um incremento dentro de uma fase maior, actualizar os docs existentes da fase em vez de criar duplicados.
+- **Never** write production in the same turn that finishes Red **without** creating both files.
+- Green: `coder` ticks `fase{N}Task.md`. Tester does not write production.
+- If Red is only an increment inside the same phase, update that phase's docs instead of creating duplicates.
 
 ## Three laws (TDD)
 

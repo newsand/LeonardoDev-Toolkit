@@ -1,166 +1,227 @@
-<p align="center">
-  <img src="assets/michelangelo-dev-toolkit.png" alt="Michelangelo-Dev-Toolkit" width="480" />
-</p>
-
-# Michelangelo-Dev-Toolkit
+# Leonardo Dev Toolkit
 
 > *«O código é o produto residual da teoria da construção do projeto.»*  
 > — frase adaptada de Peter Naur
 
-Compilado de **skills**, **rules**, **agents** e **boilerplates** para iniciar um projeto com o **Claude Code** ou o **Cursor** já orientado por convenções, guardrails e fluxos de trabalho repetíveis.
+Kit de **skills**, **rules**, **agents** e **hooks** para o [Cursor](https://cursor.com): o agente trabalha a partir de uma spec escrita, em fatias TDD, com um quality gate na máquina — não a partir de “best practices” genéricas.
 
-Não é uma aplicação executável: é um **kit de arranque** que se copia ou adapta para um repositório novo, para dar contexto consistente ao agente desde o primeiro commit.
+Isto **não** é uma aplicação. É o contexto que se copia para um repositório novo (ou legado) para o agente ter as mesmas regras desde o primeiro commit.
 
-| IDE / CLI | Pasta do kit | Extensão das rules |
-|-----------|--------------|--------------------|
-| **Claude Code** | `.claude/` | `.md` |
-| **Cursor** | `.cursor/` | `.mdc` |
+O kit canónico está em [`.cursor/`](.cursor/). Templates de spec antiga (legado) estão em [`docs/harness/`](docs/harness/).
 
-O conteúdo (skills, agents, regras) é o mesmo nos dois lados; só muda o caminho e a extensão das rules.
+---
 
-**Repositório:** [BrunoMartino/Michelangelo-Dev-Toolkit](https://github.com/BrunoMartino/Michelangelo-Dev-Toolkit)
+## Para que serve
 
-[English](README.en.md)
+Dar ao agente um **contrato de trabalho** fechado:
 
-## O que inclui
+1. **O que construir** fica em `/docs` (spec one-shot: brief, arquitectura, modelos, features, contratos).
+2. **Como construir** fica em `docs/tdd/fase{N}.md` + `fase{N}Task.md` (ondas TDD: Red → Green → Refactor).
+3. **Quem faz o quê** são agents com papel único (`project`, `tester`, `coder`, `reviewer`, …).
+4. **O que não pode passar** é o quality gate (Lefthook + linters na máquina, não como dependência do projeto).
 
-### Skills (`.claude/skills/` ou `.cursor/skills/`)
+Sem isso, o modelo inventa arquitectura, mistura testes com código de produção, altera testes antigos e “completa” features que o utilizador não pediu.
 
-Instruções especializadas que o agente pode invocar em tarefas concretas:
+---
 
-| Skill | Função |
+## Filosofia
+
+**A spec vence.** Se `/docs` existe, é a fonte de verdade. Código deriva da spec — nunca o contrário. Ambiguidade na spec vira bug no output.
+
+**Unidade de desenho = operação nomeada** (`create_user`, `list_orders`, `approve_payment`): command, query ou job. Não MVC, não camadas `domain/` / `infra/` / `usecase/`, não Clean/Hexagonal/DDD/CQRS por defeito.
+
+**Barato de mudar.** Monólito modular, Transaction Script ou pipeline curto, funções, schema-first, SQL/query object local. Abstract só com duplicação real, caminho principal mais curto, melhor localidade e risco menor.
+
+**Docs antes de código.** Feature nova exige `docs/03-features/feature-{name}.md` com as **4 respostas do utilizador** (o agente não as inventa). Sem isso, a feature não entra.
+
+**TDD em ondas.** Red (`tester`) escreve testes a falhar e o handoff `fase{N}*`. Green (`coder`) só implementa esse checklist. Sem handoff Red, não há Green. Testes já no repo não se apagam nem se reescrevem.
+
+**Gate na máquina.** Ruff, mypy, Bandit, pip-audit, vulture, golangci-lint, Biome, Lefthook e Gitleaks instalam-se no PATH do programador — não no `pyproject.toml` / `package.json` / `go.mod`. Complexidade ciclomática (radon / cyclop) **só relata**; não barra commit.
+
+**Graphify primeiro.** Antes de inferir arquitectura ou “onde isto vive”, consultar `graphify-out/` (ou perguntar se o grafo não existe).
+
+**Menos tokens, menos teatro.** Agent/Ask fazem só o pedido. Plan mode raciocina. Sem `.env` editado pelo agente (só `.env.example`). Payloads para LLM em TOON.
+
+---
+
+## Como usar
+
+Fluxo típico num projeto novo:
+
+```mermaid
+flowchart TD
+  kit[Copiar .cursor para o repo]
+  spec["DOC: /docs"]
+  gate[quality-gate SETUP]
+  red["Red: tester + docs/tdd/faseN"]
+  green["Green: coder"]
+  review[reviewer + check.sh]
+  sync[SYNC se código e /docs divergirem]
+  kit --> spec --> gate
+  spec --> red --> green --> review
+  review --> sync
+```
+
+| Pedido seu | O que o agente deve fazer |
+|-------------|---------------------------|
+| Documentar / planear o produto | Agent `project` + skill `documentation-harness` **DOC** (alias `harness-create`). Spec em `/docs`. **Não** criar `docs/harness/` em bootstrap novo. |
+| Gerar a app a partir da spec | `documentation-harness` **BUILD**: uma fase de cada vez. Red → handoff → Green → Refactor → Verify. |
+| Código e `/docs` desalinhados | **SYNC** (hook `stop` também avisa se `docs/00-brief.md` existe). |
+| Legado sem `/docs` | `legacy-explainer` (Graphify), depois DOC. |
+| Review do diff | Agent `reviewer`: `.cursor/skills/quality-gate/scripts/check.sh` (check-only, sem `--fix`, sem `lefthook install`). |
+| Comentários | Agent `commenter` (pt-BR, só o que acrescenta intenção). |
+| Refactor sem mudar comportamento | Agent `refactor`. |
+| Segurança explorável | Agent `security`. |
+| Validar contra a spec | Agent `validator`. |
+
+Peça **Red** ou **Green** de forma explícita. O `tester` não escreve código de produção; o `coder` não escreve testes.
+
+### Spec (`/docs`)
+
+| Ficheiro | Função |
+|----------|--------|
+| `00-brief.md` | Objectivo, stack, non-goals |
+| `01-architecture.md` | Operações, árvore, consistência |
+| `02-data-models.md` | Modelos |
+| `03-features/feature-{name}.md` | Uma feature = 4 respostas suas + operações |
+| `04-contracts.md` | Contratos de API |
+| `05-non-negotiables.md` | Convenções, testes, gate |
+| `06-discretion.md` | Decisões pequenas |
+| `CHANGELOG.md` | Ledger |
+
+Implementação: `docs/tdd/fase{N}.md` + `fase{N}Task.md`. Catálogo de testes: `docs/testsReadme.md`.
+
+Projetos **já** em `docs/harness/` continuam a ligar a essa pasta (legado). Bootstrap novo é só `/docs`.
+
+### Agents (`.cursor/agents/`)
+
+| Agent | Papel |
 |-------|--------|
-| `harness-create` | Cria os docs harness interactivamente (perguntas só para o que falta) e instala a rule `all-for-harness` |
-| `tester` | TDD: testes a falhar primeiro, depois código mínimo; triangulação em 4 eixos (happy, boundary, negative, adversarial); handoff Green em `docs/tdd/fase{N}.md` + `fase{N}Task.md` |
-| `design-patterns-coder` | Padrões GoF só a partir da documentação do desenvolvedor (docs-mcp `gof-design-patterns`; fallback no GitHub); composição sobre herança |
-| `code-commenter` | Comentários e documentação em bloco para lógica não trivial |
-| `design-docs-creator` | TDD técnico: specs, RFCs e propostas de arquitetura via descoberta interactiva; fases de implementação em Red/Green |
-| `coupling-analizer` | Análise de acoplamento entre módulos (força, distância, volatilidade) |
-| `legacy-explainer` | Graphify: explica codebase legado E regenera/actualiza o grafo (`graphify-out/`); preenche os docs harness |
-| `cistina-arch` | Companion do Graphify: HTML interactivo ao nível de ficheiro com trechos complexos visíveis; AskQuestion para mais profundidade; órfãos e dead code no canvas |
-| `get-that-task` | Consulta Jira: issues abertas do utilizador e não atribuídas |
-| `get-my-tools` | Inventaria e instala skills, rules e docs deste toolkit no projeto actual (útil em dev containers) |
-| `dependency-guardsman` | Segurança em dependências npm: scan de vulnerabilidades, supply-chain (typosquatting, install scripts) e licenças |
-| `data-guardsman` | Criptografia, classificação de dados, gestão de segredos e acesso a dados injection-safe |
-| `audit-guardsman` | Logs de auditoria JSON em operações privilegiadas, com protecção contra log injection e sem PII |
-| `wordpress-developer` | Scan e mitigação das vulnerabilidades comuns de WordPress via tema local (xmlrpc, feeds, comentários, CORS, …) |
-| `shopify-developer` | Referência completa de desenvolvimento Shopify (Liquid, temas OS 2.0, GraphQL, Hydrogen, Functions) |
-| `learn-live-canvas` | Docs e hooks de LiveCanvas + Picostrap 5 a partir de cache local sincronizada |
-| `node-express-project` | Scaffold Node+Express+TS (npm/bun, Zod, Prisma/Drizzle, paralelismo, Jest) |
-| `node-fastify-project` | Scaffold Node+Fastify+TS (npm/bun, Zod, Prisma/Drizzle, paralelismo, Jest) |
-| `nest-project` | Scaffold NestJS optimizado (SWC/Vite, validadores, Prisma/Drizzle, segurança, Jest) |
-| `laravel-project` | Instalação Laravel optimizada com API (Sanctum), Eloquent, FormRequests, PHPUnit e strict types (Larastan) |
-| `django-project` | Django API (DRF) ou monolito com Vue; pytest, Pydantic, SQLAlchemy, pandas/numpy opcionais |
-| `django-fastapi-project` | Django + FastAPI montados no mesmo ASGI; pytest, Pydantic, SQLAlchemy |
-| `make-etl-project` | Projeto ETL Python (SQLAlchemy, pandas, numpy) com bancos source/target e pytest por estágio E/T/L |
-| `create-minio-docker` | Gera MinIO (Dockerfile + docker-compose) e `install.md` para deploy no Coolify (API/Console, buckets, credenciais) |
-| `database-postgres-mcp` | Instala o MCP-explorer-for-Postgress e regista-o na config MCP do agente |
+| `project` | Bootstrap: spec, scaffold de stack, kit, quality-gate SETUP. Não implementa produto. |
+| `tester` | Red, verify, cobertura. Só testes novos. |
+| `coder` | Green a partir do handoff. Só código de produção. |
+| `refactor` | Sem mudança de comportamento observável. |
+| `reviewer` | Audit estático + checklist. Não edita. |
+| `commenter` | Comentários / docstrings. |
+| `validator` | Gate da spec (read-only). |
+| `security` | Vulnerabilidades exploráveis. |
 
-Cada skill vive numa pasta com `SKILL.md` (e, quando aplicável, `examples.md`).
+### Skills centrais (`.cursor/skills/`)
 
-### Agents (`.claude/agents/` ou `.cursor/agents/`)
-
-Subagentes especializados (spawnados pelo agente principal conforme a `description`):
-
-| Agent | Função |
+| Skill | Quando |
 |-------|--------|
-| `test-writer` | TDD Red/Green: só sob pedido explícito de fase Red, Green ou (raramente) ambas; usa sempre as skills `tester` e `design-patterns-coder`; cobertura >50% global e 80–90% no código crítico |
-| `security-auditor` | Análise de vulnerabilidades exploráveis em backends (APIs, auth, DB, integrações); foco em impacto real, não em falsos positivos teóricos |
+| `documentation-harness` | DOC / BUILD / SYNC |
+| `harness-create` | Alias de DOC |
+| `default-architecture` | Forma do sistema (operações, monólito) |
+| `quality-gate` | SETUP (CLIs na máquina) e RUN (`check.sh`) |
+| `tester` | Matriz TDD e handoff `fase{N}*` |
+| `get-my-tools` | Instalar pedaços deste kit noutro repo |
 
-### Rules
+Há skills de stack (`django-project`, `nest-project`, `laravel-project`, …), Graphify (`legacy-explainer`, `cistina-arch`), e domínio (Shopify, WordPress, guardsman). O agente só as usa se o pedido corresponder.
 
-Regras sempre ativas que orientam o comportamento do agente:
+### Rules (`.cursor/rules/`)
 
-| Claude Code | Cursor |
-|-------------|--------|
-| `.claude/rules/*.md` | `.cursor/rules/*.mdc` |
+Sempre ativas no Cursor. As que definem o contrato: `docs-pointer`, `all-for-harness`, `default-architecture`, `graphify-first`, `persisted-tester`, `less-talk`, `dont-write-env`, `python-uv-package-manager`, `api-pydantic-schemas`, `llm-toon`, convenções Python/Go.
 
-- **`all-for-harness`** — os docs em `docs/harness/` são vinculativos: o agente lê-os antes de alterações de arquitetura, testes, deploy, domínio ou features, segue-os em caso de conflito com "best practices" genéricas e aplica o fluxo obrigatório docs → código → graphify. Gate de features: nenhuma feature nova sem `docs/harness/features/feature-{name}.md` com as 4 respostas do utilizador. É instalada junto com os docs pela skill `harness-create`.
-- **`graphify-first`** — antes de inferir arquitectura/fluxos/dependências, consultar o Graphify (`graphify-out/`) primeiro; se indisponível, perguntar ao utilizador.
-- **`persisted-tester`** — testes já existentes no repositório não podem ser removidos nem alterados pelo agente; cobrir mudanças com testes novos e avisar o utilizador dos obsoletos.
-- **`less-talk`** — proíbe explicações não pedidas, extras de escopo e desperdício de tokens em modo Agent/Ask; modo Plan mantém profundidade.
-- **`dont-write-env`** — nunca editar `.env`; apenas `.env.example`.
-- **`python-uv-package-manager`** — em projetos Python, usar sempre `uv` (`uv add` / `uv run` / `uv sync`); proíbe pip/poetry/conda.
-- **`api-pydantic-schemas`** — endpoints de API com schemas Pydantic explícitos de request/response; sem `dict`/`Any` crus.
+---
 
-### Harness docs — boilerplate (`docs/harness/`)
+## Setup
 
-Templates para definir as regras do projeto. Copie cada ficheiro `*_template.md`, remova o sufixo `_template` e preencha para o seu contexto:
+### 1. Pôr o kit no repositório de destino
 
-| Template | Documento final | Conteúdo |
-|----------|-----------------|----------|
-| `architeture_rules_template.md` | `architecture_rules.md` | Estilo arquitetural (MVC por defeito), módulos, padrões permitidos |
-| `coding_conventions_template.md` | `coding_convention.md` | Estilo de código e convenções MVC |
-| `forbidden_patterns_template.md` | `forbidden_patterns.md` | Anti-padrões e arquiteturas proibidas por defeito |
-| `testing_expectations_template.md` | `testing_expectation.md` | Expectativas de testes e cobertura |
-| `deployment_rules_template.md` | `deployment_rules.md` | Regras de deploy e ambientes |
-| `domain_invariants_template.md` | `domain_invariantes.md` | Invariantes e regras de negócio |
-| `operational_constraints_template.md` | `operational_constraints.md` | Limites operacionais (SLA, quotas, etc.) |
-| `features_template.md` | `features/feature-{name}.md` | Um ficheiro por feature: descrição, problema, solução + trade-offs, exemplo/contexto (4 respostas do utilizador); relações entre features |
+Copie para a raiz do projeto:
 
-Estes documentos são a **fonte de verdade** que skills como `tester`, `design-patterns-coder`, `audit-guardsman` e `data-guardsman` referenciam antes de implementar. Os design docs do projeto derivam do harness de features.
+- `.cursor/agents/`
+- `.cursor/rules/`
+- `.cursor/skills/`
+- `.cursor/hooks.json` e `.cursor/hooks/` (hook `stop` de sync `/docs`)
 
-### Outros boilerplates
+**Alternativa:** no Cursor, invocar `get-my-tools` para instalar a partir deste toolkit (útil em dev container).
 
-- **`docs/testsReadme.md`** — catálogo de testes (tabela para registar suites, ficheiros e como correr isoladamente).
-- **`docs/tdd/`** — criado pela skill `tester` / agente `test-writer` durante Red: `fase{N}.md` (plano Green) e `fase{N}Task.md` (checklist).
+Abra a pasta no Cursor. Skills e rules passam a estar no contexto do agente.
 
-## Como usar (Claude Code)
+Claude Code: o espelho `.claude/` (rules em `.md`) existe neste repo se precisar da mesma lógica noutro CLI.
 
-1. **Copie** para o repositório de destino:
-   - `.claude/skills/`
-   - `.claude/rules/`
-   - `.claude/agents/` (opcional)
-   - `docs/harness/*_template.md`
-   - `docs/testsReadme.md` (opcional)
+### 2. Spec do produto
 
-   **Alternativa (dev container / sem clone local):** invoque a skill `get-my-tools` no Claude Code para listar e instalar itens a partir do GitHub.
+No projeto de destino, peça ao agent `project` (ou `documentation-harness` DOC) para criar `/docs`. Responda às 4 perguntas de cada feature. Não peça BUILD enquanto a spec estiver com `TBD:` nas regras que importam.
 
-2. **Materialize os harness docs**: invoque `harness-create` (greenfield — faz perguntas e gera cada doc a partir dos templates, incluindo `features/`, instalando a rule `all-for-harness`), ou renomeie e preencha os templates manualmente.
+Se quiser scaffold da app (Django, Nest, …), peça isso **explicitamente** ao `project` — spec sozinha não gera o repositório da aplicação.
 
-3. **Ajuste** skills e rules ao stack do projeto (Jira, npm, Graphify, uv/Python, etc.) — muitas skills assumem integrações MCP (Atlassian, Snyk, docs-mcp, etc.).
+### 3. Quality gate (máquina + repo fino)
 
-4. **Opcional — projeto legado**: invoque `legacy-explainer` para gerar documentação inicial a partir do código existente.
+No **repo de destino**, com o kit já copiado:
 
-5. **Opcional — decisões de arquitectura**: invoque `design-docs-creator` antes de features significativas; use `coupling-analizer` para avaliar acoplamento; use `design-patterns-coder` na implementação Green quando houver padrões GoF.
+```bash
+.cursor/skills/quality-gate/scripts/setup.sh
+```
 
-6. **TDD**: peça explicitamente fase **Red** ou **Green** (ou ambas) ao agente `test-writer`, que segue `tester` + `design-patterns-coder`.
+Windows: `setup.ps1`.
 
-7. **Mantenha** `docs/harness/` e o grafo actualizados quando mudar código, arquitetura ou regras de domínio — invoque `legacy-explainer` após alterações relevantes; as rules `all-for-harness` e `graphify-first` dependem disso.
+| Flag | Efeito |
+|------|--------|
+| `--git-hooks` | `lefthook install` (hooks de commit/push neste repo) |
+| `--force` | sobrescreve `lefthook.yml` / configs já existentes |
+| `--with-radon` | instala radon (relatório de complexidade; não falha o gate) |
 
-## Como usar (Cursor)
+O script detecta Python / JS / Go e instala **só** o que corresponde. Sempre Lefthook + Gitleaks. Python precisa de [`uv`](https://docs.astral.sh/uv/) no PATH.
 
-Mesmos passos, trocando `.claude/` por `.cursor/` e rules `.md` por `.mdc`. A skill `get-my-tools` do lado Cursor instala sob `.cursor/`.
+Não faz `uv add ruff` nem `npm i -D biome`. Escreve configs finas no repo (`lefthook.yml`, `ruff.toml` / `mypy.ini` / `.golangci.yml` / `biome.json`, `quality-baseline.json`) se ainda não existirem.
 
-## Estrutura do repositório
+O agent `project`, depois do bootstrap, pergunta se deve correr este SETUP. O `reviewer` **não** instala nada: se faltar CLI, aponta para SETUP.
+
+**Correr o gate** (review / CI local):
+
+```bash
+.cursor/skills/quality-gate/scripts/check.sh
+.cursor/skills/quality-gate/scripts/check.sh --file path/a --file path/b
+```
+
+Check-only. Commit/push humanos usam os git hooks **depois** de `--git-hooks`.
+
+| Stack | Ferramentas (PATH) |
+|-------|-------------------|
+| Python | Ruff (lint+format+imports, ruleset S), mypy, Bandit, pip-audit, vulture; radon opcional (relatório) |
+| Go | golangci-lint: govet, staticcheck (inclui gosimple), errcheck, unused, ineffassign, gosec; cyclop só relatório |
+| JS/TS | Biome |
+| Sempre | Lefthook, Gitleaks |
+
+Cobertura de testes fica no ambiente do **projeto** (pytest-cov, jest, `go test -cover`).
+
+### 4. Graphify (opcional, mas as rules assumem)
+
+Se o projeto tiver grafo, o agente consulta `graphify-out/` antes de vasculhar ficheiros. Sem grafo, o agente deve perguntar se gera (skill `legacy-explainer`) ou se segue por leituras directas.
+
+### 5. Implementar
+
+1. BUILD: uma fase. Red → `docs/tdd/fase{N}*` → Green → (refactor) → verify.
+2. Reviewer no slice.
+3. Não fazer merge com gate vermelho (excepto relatórios de complexidade).
+
+---
+
+## Estrutura deste repositório
 
 ```
 .
-├── .claude/                 # Kit Claude Code
-│   ├── agents/
-│   ├── rules/               # *.md
-│   └── skills/
-├── .cursor/                 # Kit Cursor (espelho)
+├── .cursor/                 # Kit Cursor (canónico)
 │   ├── agents/
 │   ├── rules/               # *.mdc
-│   └── skills/
+│   ├── skills/
+│   ├── hooks.json
+│   └── hooks/
+├── .claude/                 # Espelho Claude Code (rules *.md)
 ├── docs/
-│   ├── harness/             # Templates (incl. features)
+│   ├── harness/             # Templates legado (não usar em bootstrap novo)
 │   └── testsReadme.md
+├── assets/
 └── README.md
 ```
 
-A pasta `drafts/` contém rascunhos em elaboração e **não** faz parte do kit estável (está no `.gitignore`).
+`drafts/` é rascunho local (está no `.gitignore`) e **não** faz parte do kit.
 
-## Princípios
-
-- **MVC simples por defeito** — sem DDD, Clean/Hexagonal ou CQRS global salvo pedido explícito (ver `forbidden_patterns`).
-- **Documentação antes de mudanças estruturais** — o agente lê harness docs, não inventa regras; features exigem as 4 respostas do utilizador.
-- **Padrões GoF só da doc do projecto** — via `design-patterns-coder` / docs-mcp, nunca da memória do modelo.
-- **Skills com escopo fechado** — cada uma cobre um fluxo (TDD, padrões, auditoria, dependências, Jira, …).
-- **Boilerplate editável** — templates genéricos; o projeto concreto preenche os detalhes.
-- **Paridade Claude / Cursor** — o mesmo kit nos dois agentes; mantenha as pastas alinhadas ao alterar skills ou rules.
+---
 
 ## Licença
 
-Defina a licença adequada ao copiar este kit para os seus repositórios.
+Defina a licença ao copiar o kit para os seus repositórios.

@@ -1,0 +1,29 @@
+---
+description: No inline narration comments; Python uses docstrings only (required on API handlers)
+alwaysApply: true
+---
+
+# No inline comments (docstrings only)
+
+- Do **not** add inline narration comments (`# ...`, `// ...`, `/* ... */`) in application code.
+- Prefer naming and small functions. Comments belong to the `commenter` agent — only when they add durable intent/constraints, in pt-BR unless `coding_convention` / `/docs` says otherwise.
+- If `/docs` or `docs/harness/coding_convention.md` is stricter, it wins.
+
+## Python
+
+- Documentation uses **docstrings** as the first statement in the function/class body.
+- **Every API endpoint handler must have a docstring**: what it does, inputs, returns, important errors (Swagger/ReDoc).
+
+```python
+# ❌ BAD
+def create_user(p_payload: dict) -> dict:
+    # validate payload
+    name = p_payload["name"]  # required
+    return {"name": name}  # response
+
+# ✅ GOOD
+def create_user(p_payload: dict) -> dict:
+    """Create a user from validated payload and return the created user."""
+    name = p_payload["name"]
+    return {"name": name}
+```

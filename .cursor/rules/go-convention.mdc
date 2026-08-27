@@ -1,0 +1,106 @@
+---
+description: Go conventions — MixedCaps, p_ parameter prefix, no init/Get/Set, errors always checked, panic only on fatal startup
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go Conventions
+
+If `docs/harness/coding_convention.md` or `/docs` is stricter, it wins.
+
+## Naming
+
+- **Exported**: PascalCase (`User`, `LoadConfig`). **Unexported**: camelCase (`user`, `loadConfig`)
+- Packages: short, lowercase, singular, no underscores or mixedCaps (`http`, `user` — not `user_service`, not `userService`)
+- Prefix parameters with `p_`: `p_User`, `p_Value` (Go p_MixedCaps, not `pUser`)
+- Prefix global variables with `g_`: `g_Logg`, `g_Value` (Go g_MixedCaps, not `g_Logg`)
+- Clear descriptive **English** names (exception: domain terms already in the system)
+- Functions use verbs; constructors are `NewType`; booleans read as questions: `Valid()`, `IsNumber(p_Field)`
+- Do not abbreviate; if a name is too long, pick a simpler term
+- Acronyms stay consistent and uppercase in MixedCaps: `userID`, `HTTPClient`, `CPF` — allowed: `ID`, `HTTP`, `URL`, `JSON`, `CPF`, `CNPJ`, `BR`, `USA`
+- Constants: `SCREAMING_SNAKE_CASE`
+- Receivers: 1–2 letters from the type (`u User`, `c Client`), same name on every method
+- Files: lowercase with `_` only for `_test.go` / build tags — not camelCase
+- Never `Get` / `Set` prefixes (`Owner()`, not `GetOwner()`)
+
+## Tests
+
+- Test names include the target: `TestValid`, `TestCreateData`
+- Describe expected behavior in the name or subtest: `t.Run("should return X", ...)`
+
+## Never `init()`
+
+`init()` makes program state unpredictable, hides control flow, and complicates tests. Put setup in `main`, explicit constructors, or a function the caller invokes.
+
+```go
+// ❌ BAD
+func init() { config = load() }
+
+// ✅ GOOD
+func NewConfig() (Config, error) { return load() }
+```
+
+## Never define unused interfaces
+
+Do not pre-create interfaces before there are **at least two** concrete implementations. Accept interfaces, return structs.
+
+```go
+// ❌ BAD
+type Store interface { Get(id string) (Item, error) }
+type dbStore struct{}
+func NewStore() Store { return dbStore{} }
+
+// ✅ GOOD
+type dbStore struct{}
+func NewStore() dbStore { return dbStore{} }
+```
+
+## Never `else` after `return`
+
+If the `if` block returns early, drop `else`. Keep the happy path straight.
+
+```go
+// ❌ BAD
+if err != nil {
+    return err
+} else {
+    return do(v)
+}
+
+// ✅ GOOD
+if err != nil {
+    return err
+}
+return do(v)
+```
+
+## Never ignore errors
+
+Always check returned errors (`if err != nil`). Do not discard them with `_`.
+
+```go
+// ❌ BAD
+data, _ := os.ReadFile(path)
+
+// ✅ GOOD
+data, err := os.ReadFile(path)
+if err != nil {
+    return err
+}
+```
+
+## Never `Get` / `Set` prefixes
+
+Name the field or method `Owner()` instead of `GetOwner()`.
+
+```go
+// ❌ BAD
+func (u User) GetOwner() string { return u.owner }
+
+// ✅ GOOD
+func (u User) Owner() string { return u.owner }
+```
+
+## Never `panic` for normal errors
+
+Reserve `panic` for unrecoverable fatal startup failures. Return `error` for everything else.

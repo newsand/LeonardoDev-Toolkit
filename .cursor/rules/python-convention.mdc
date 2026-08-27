@@ -1,0 +1,30 @@
+---
+description: Python naming — snake_case, p_ parameter prefix, English names, tests named after the target
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python conventions
+
+## Naming
+
+- **snake_case** for variables, functions, methods, parameters, object properties
+- **SCREAMING_SNAKE_CASE** for constants and environment variables
+- **PascalCase** for classes
+- Prefix parameters with `p_`: `p_user`, `p_value`
+- Clear descriptive **English** names (exception: domain terms already in the system)
+- Functions use verbs; booleans read as questions: `is_valid()`, `is_number(p_field)`
+- Do not abbreviate; if a name is too long, pick a simpler term
+- Allowed acronyms only: `ID`, `CPF`, `CNPJ`, `BR`, `USA`
+
+## Tests
+
+- Test names include the target: `test_is_valid`, `test_create_data`
+- Describe expected behavior: "should return X, returned Y"
+
+## Anti-patterns
+
+- Do NOT use camelCase
+- Do NOT abbreviate variable names
+- Do NOT mix languages in identifiers
+- Always keep a blank line at the end of every file

@@ -1,0 +1,22 @@
+---
+description: Default shape — named operations, modular monolith, schema-first; no MVC/Clean/layers as skeleton
+alwaysApply: true
+---
+
+# Default architecture
+
+If `/docs` exists, that spec wins. Otherwise apply this default. Follow `.cursor/skills/default-architecture/SKILL.md` and `.cursor/skills/quality-gate/SKILL.md` when structuring or gating work.
+
+Organize around named operations (`create_user`, `list_orders`) — command, query, or job. Not MVC, not entity-centric, not `domain/`/`infra/`/`usecase/` layers.
+
+**Prefer:** modular monolith, Transaction Script or short pipeline, plain functions, schema-first, local SQL/query object, Active Record or table-driven rules, facade only for real complexity.
+
+**Avoid by default:** microservices, event sourcing, full CQRS, heavy Clean/Hexagonal, DI containers, generic repositories, duplicated DTO/Entity/ViewModel, needless factories.
+
+Before abstracting: real duplication? shorter main path? better locality? less risk or more coupling? stable enough?
+
+Command = explicit transaction. Query = no side effects. External I/O outside long transactions.
+
+Spec in `/docs`. Implementation in TDD phases: Red → `docs/tdd/fase{N}*` → Green → Refactor. No Green without the Red handoff.
+
+Quality gate: SETUP installs CLIs on the machine (`.cursor/skills/quality-gate/scripts/setup.sh`); RUN is `.cursor/skills/quality-gate/scripts/check.sh`. Lefthook + Ruff/mypy/Bandit/pip-audit/vulture (Python) / golangci-lint (Go) / Biome (JS/TS) + Gitleaks + coverage. Complexity (radon/cyclop) is report-only. Do not merge on red.

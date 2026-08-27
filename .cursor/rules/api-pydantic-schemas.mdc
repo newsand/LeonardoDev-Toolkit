@@ -1,20 +1,17 @@
 ---
-description: 
+description: Contratos de API com schemas tipados (Pydantic em Python); JSON na fronteira HTTP; sem dict/Any crus
 alwaysApply: true
 ---
 
-# Pydantic API Contracts
+# API Contracts
 
-For every API endpoint, define explicit Pydantic models for:
-- request payloads (body/query/path when applicable)
-- response payloads (success and error shapes)
+For every API endpoint, define explicit schemas for request (body/query/path) and response (success and error). APIs speak **JSON** — do not return non-JSON from HTTP handlers.
 
-## Required Practices
-
+- Python: Pydantic models. Other stacks: the project's equivalent (Zod, class-validator, Go structs) — never raw untyped maps at the HTTP boundary.
 - Do not accept or return raw `dict`, `Any`, or untyped JSON structures.
 - Validate incoming data with request schemas before business logic runs.
 - Serialize responses through response schemas before returning to clients.
-- Keep endpoint contracts stable and explicit; version schemas when breaking changes are needed.
+- Keep endpoint contracts stable; version schemas when breaking changes are needed.
 
 ## FastAPI Example
 

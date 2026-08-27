@@ -1,28 +1,26 @@
 ---
-description: Testes existentes são imutáveis pelo agente; novos cobrem mudanças; obsoletos só o utilizador remove
+description: Existing tests are immutable; cover changes with new tests; only the user deletes obsolete ones
 alwaysApply: true
 ---
 
-# Persisted Tester
+# Persisted tester
 
-Testes já presentes no repositório **não podem ser removidos nem alterados** pelo agente — inclui editar asserts, renomear, mover, comentar, desativar ou apagar ficheiros de teste.
+Tests already in the repo **must not be removed or edited** by the agent — including asserts, renames, moves, commenting out, disabling, or deleting test files.
 
-## Quando a mudança exige cobertura
+## When a change needs coverage
 
-1. Escreva **novos** testes que cubram o comportamento atualizado.
-2. Mantenha os testes antigos intactos, mesmo que falhem após a alteração de produção.
-3. Informe o utilizador, de forma explícita, quais testes ficaram **obsoletos** e devem ser **removidos manualmente** por ele (caminho + motivo breve).
+1. Write **new** tests for the updated behavior.
+2. Leave old tests intact even if they fail after the production change.
+3. Tell the user which tests are **obsolete** and should be **removed manually** (path + short reason).
 
-## Exceções
+## Exceptions
 
-- Só pode tocar em testes existentes se o utilizador **pedir explicitamente** na conversa atual (ex.: "remove este teste", "atualiza o assert em X").
-- Criar ficheiros ou suites de teste **novos** continua permitido.
-
-## Exemplo
+- Touch existing tests only if the user **explicitly asked** in this conversation.
+- Creating **new** test files or suites is allowed.
 
 ```
-❌ Reescrever ou apagar `tests/test_checkout.py::test_old_flow` porque o fluxo mudou.
+❌ Rewrite or delete tests/test_checkout.py::test_old_flow because the flow changed.
 
-✅ Adicionar `tests/test_checkout.py::test_new_flow`; avisar:
-   "Obsoleto (remover manualmente): tests/test_checkout.py::test_old_flow — fluxo substituído por X."
+✅ Add tests/test_checkout.py::test_new_flow; warn:
+   "Obsolete (remove manually): tests/test_checkout.py::test_old_flow — replaced by X."
 ```
